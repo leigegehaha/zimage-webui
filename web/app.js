@@ -33,6 +33,26 @@ const lightbox = document.getElementById('lightbox');
 const lightboxImage = document.getElementById('lightboxImage');
 const lightboxDownload = document.getElementById('lightboxDownload');
 const lightboxClose = document.getElementById('lightboxClose');
+const editImageInput = document.getElementById('editImageInput');
+const uploadEditImageButton = document.getElementById('uploadEditImageButton');
+const clearEditImageButton = document.getElementById('clearEditImageButton');
+const editSourceCard = document.getElementById('editSourceCard');
+const editSourcePreview = document.getElementById('editSourcePreview');
+const editSourceLabel = document.getElementById('editSourceLabel');
+const editSourceHint = document.getElementById('editSourceHint');
+const editDropZone = document.getElementById('editDropZone');
+const imageStrengthInput = document.getElementById('imageStrengthInput');
+const imageStrengthValue = document.getElementById('imageStrengthValue');
+const cropPanel = document.getElementById('cropPanel');
+const cropOriginalPreview = document.getElementById('cropOriginalPreview');
+const editCropCanvas = document.getElementById('editCropCanvas');
+const cropAspectLabel = document.getElementById('cropAspectLabel');
+const cropZoomInput = document.getElementById('cropZoomInput');
+const cropZoomValue = document.getElementById('cropZoomValue');
+const cropOffsetXInput = document.getElementById('cropOffsetXInput');
+const cropOffsetXValue = document.getElementById('cropOffsetXValue');
+const cropOffsetYInput = document.getElementById('cropOffsetYInput');
+const cropOffsetYValue = document.getElementById('cropOffsetYValue');
 
 const TEMPLATE_STORAGE_KEY = 'zimage.prompt.templates';
 const HISTORY_STORAGE_KEY = 'zimage.generation.history';
@@ -41,6 +61,8 @@ const jobs = new Map();
 let dashboardTimerHandle = null;
 let systemTimerHandle = null;
 let currentLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'zh';
+let selectedEditSource = null;
+let selectedEditImageElement = null;
 
 const resolutionProfiles = {
   '1080p': 1080,
@@ -82,6 +104,25 @@ const translations = {
     styleTemplatePlaceholder: '可复用的风格模板...',
     styleTemplateName: '风格模板名称',
     styleTemplateNamePlaceholder: '例如：像素海报',
+    imageEditing: '图片编辑',
+    clearEditSource: '清除编辑图',
+    uploadImage: '上传图片',
+    dropImageTitle: '拖拽图片到这里',
+    dropImageHint: '支持拖拽上传，也可点击左侧按钮选择文件。',
+    imageStrength: '编辑强度',
+    cropPreview: '裁剪预览',
+    originalThumbnail: '原图缩略图',
+    croppedThumbnail: '裁剪后缩略图',
+    cropZoom: '缩放',
+    cropOffsetX: '水平偏移',
+    cropOffsetY: '垂直偏移',
+    editSourceHint: '当前会以这张图作为编辑输入。',
+    sourceUploaded: '已上传图片',
+    sourceHistory: '历史图片',
+    sourceGenerated: '结果图片',
+    editImage: '编辑图片',
+    editMode: '编辑模式',
+    sourceImage: '源图片',
     width: '宽度',
     height: '高度',
     count: '张数',
@@ -146,6 +187,7 @@ const translations = {
     noteLabel: '提示',
     imageMissing: '图片文件缺失。',
     savedGeneration: '已保存生成结果',
+    generatedImageTask: '生成任务',
     reusePrompt: '复用提示词',
     saveAsStyle: '保存为风格',
     cancelTask: '取消任务',
@@ -172,6 +214,25 @@ const translations = {
     styleTemplatePlaceholder: 'Reusable style template...',
     styleTemplateName: 'Style Template Name',
     styleTemplateNamePlaceholder: 'e.g. Pixel Poster',
+    imageEditing: 'Image Editing',
+    clearEditSource: 'Clear Edit Source',
+    uploadImage: 'Upload Image',
+    dropImageTitle: 'Drop image here',
+    dropImageHint: 'Drag to upload, or use the button on the left.',
+    imageStrength: 'Image Strength',
+    cropPreview: 'Crop Preview',
+    originalThumbnail: 'Original Thumbnail',
+    croppedThumbnail: 'Cropped Thumbnail',
+    cropZoom: 'Zoom',
+    cropOffsetX: 'Offset X',
+    cropOffsetY: 'Offset Y',
+    editSourceHint: 'This image will be used as the edit source.',
+    sourceUploaded: 'Uploaded image',
+    sourceHistory: 'History image',
+    sourceGenerated: 'Generated image',
+    editImage: 'Edit Image',
+    editMode: 'Edit Mode',
+    sourceImage: 'Source Image',
     width: 'Width',
     height: 'Height',
     count: 'Count',
@@ -236,6 +297,7 @@ const translations = {
     noteLabel: 'Note',
     imageMissing: 'Image file missing.',
     savedGeneration: 'Saved Generation',
+    generatedImageTask: 'Generation Task',
     reusePrompt: 'Reuse Prompt',
     saveAsStyle: 'Save as Style',
     cancelTask: 'Cancel Task',
@@ -265,10 +327,22 @@ gaussianInput.addEventListener('input', () => {
   gaussianValue.textContent = gaussianInput.value;
 });
 
-aspectRatioSelect.addEventListener('change', syncDimensionsFromRatio);
-resolutionSelect.addEventListener('change', syncDimensionsFromRatio);
-document.getElementById('widthInput').addEventListener('input', syncHeightFromWidth);
-document.getElementById('heightInput').addEventListener('input', syncWidthFromHeight);
+aspectRatioSelect.addEventListener('change', () => {
+  syncDimensionsFromRatio();
+  renderCropPreview();
+});
+resolutionSelect.addEventListener('change', () => {
+  syncDimensionsFromRatio();
+  renderCropPreview();
+});
+document.getElementById('widthInput').addEventListener('input', () => {
+  syncHeightFromWidth();
+  renderCropPreview();
+});
+document.getElementById('heightInput').addEventListener('input', () => {
+  syncWidthFromHeight();
+  renderCropPreview();
+});
 
 settingsToggle.addEventListener('click', () => {
   settingsDrawer.classList.add('open');
@@ -290,6 +364,37 @@ deleteTemplateButton.addEventListener('click', deleteTemplate);
 templateSelect.addEventListener('change', syncSelectedTemplateToForm);
 lightboxClose.addEventListener('click', closeLightbox);
 languageToggle.addEventListener('click', toggleLanguage);
+uploadEditImageButton.addEventListener('click', () => editImageInput.click());
+clearEditImageButton.addEventListener('click', clearEditSource);
+editImageInput.addEventListener('change', handleEditUploadChange);
+editDropZone.addEventListener('click', () => editImageInput.click());
+editDropZone.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    editImageInput.click();
+  }
+});
+['dragenter', 'dragover'].forEach((type) => {
+  editDropZone.addEventListener(type, (event) => {
+    event.preventDefault();
+    editDropZone.classList.add('is-dragover');
+  });
+});
+['dragleave', 'dragend', 'drop'].forEach((type) => {
+  editDropZone.addEventListener(type, (event) => {
+    event.preventDefault();
+    editDropZone.classList.remove('is-dragover');
+  });
+});
+editDropZone.addEventListener('drop', async (event) => {
+  const [file] = [...(event.dataTransfer?.files || [])].filter((item) => item.type.startsWith('image/'));
+  if (!file) return;
+  await loadEditFile(file);
+});
+imageStrengthInput.addEventListener('input', updateCropIndicators);
+cropZoomInput.addEventListener('input', renderCropPreview);
+cropOffsetXInput.addEventListener('input', renderCropPreview);
+cropOffsetYInput.addEventListener('input', renderCropPreview);
 lightbox.addEventListener('click', (event) => {
   if (event.target === lightbox) closeLightbox();
 });
@@ -316,6 +421,13 @@ function applyLanguage() {
   reuseTemplateButton.setAttribute('aria-label', reuseTemplateButton.title);
   deleteTemplateButton.title = currentLanguage === 'zh' ? '删除模板' : 'Delete template';
   deleteTemplateButton.setAttribute('aria-label', deleteTemplateButton.title);
+  uploadEditImageButton.textContent = t('uploadImage');
+  clearEditImageButton.textContent = t('clearEditSource');
+  editSourceHint.textContent = t('editSourceHint');
+  imageStrengthValue.textContent = Number(imageStrengthInput.value || 0).toFixed(2);
+  cropZoomValue.textContent = `${Number(cropZoomInput.value || 1).toFixed(2)}x`;
+  cropOffsetXValue.textContent = `${Math.round((parseFloat(cropOffsetXInput.value) || 0) * 100)}%`;
+  cropOffsetYValue.textContent = `${Math.round((parseFloat(cropOffsetYInput.value) || 0) * 100)}%`;
   refreshTemplates();
   updateGlobalStatus();
   renderHistory();
@@ -329,6 +441,163 @@ function toggleLanguage() {
   currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
   localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
   applyLanguage();
+}
+
+function clearEditSource() {
+  selectedEditSource = null;
+  selectedEditImageElement = null;
+  editImageInput.value = '';
+  editSourceCard.hidden = true;
+  cropPanel.hidden = true;
+  cropOriginalPreview.removeAttribute('src');
+  cropAspectLabel.textContent = aspectRatioSelect.value === 'custom' ? t('custom') : aspectRatioSelect.value;
+  resetCropControls();
+  updateCropIndicators();
+  const context = editCropCanvas.getContext('2d');
+  context.clearRect(0, 0, editCropCanvas.width, editCropCanvas.height);
+}
+
+async function handleEditUploadChange(event) {
+  const [file] = event.target.files || [];
+  if (!file) return;
+  await loadEditFile(file);
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+async function loadEditFile(file) {
+  const dataUrl = await fileToDataUrl(file);
+  await setEditSource({
+    kind: 'upload',
+    label: file.name || t('sourceUploaded'),
+    previewSrc: dataUrl,
+    dataUrl,
+    imagePath: '',
+  });
+}
+
+function resetCropControls() {
+  cropZoomInput.value = '1';
+  cropOffsetXInput.value = '0';
+  cropOffsetYInput.value = '0';
+}
+
+function updateCropIndicators() {
+  imageStrengthValue.textContent = Number(imageStrengthInput.value || 0).toFixed(2);
+  cropZoomValue.textContent = `${Number(cropZoomInput.value || 1).toFixed(2)}x`;
+  cropOffsetXValue.textContent = `${Math.round((parseFloat(cropOffsetXInput.value) || 0) * 100)}%`;
+  cropOffsetYValue.textContent = `${Math.round((parseFloat(cropOffsetYInput.value) || 0) * 100)}%`;
+}
+
+function getCurrentTargetSize() {
+  const width = Math.max(64, parseInt(document.getElementById('widthInput').value, 10) || 1024);
+  const height = Math.max(64, parseInt(document.getElementById('heightInput').value, 10) || 1024);
+  return { width, height };
+}
+
+function drawCropToCanvas(canvas, targetWidth, targetHeight) {
+  if (!selectedEditImageElement) return;
+  const zoom = Math.max(1, parseFloat(cropZoomInput.value) || 1);
+  const offsetXFactor = Math.max(-1, Math.min(1, parseFloat(cropOffsetXInput.value) || 0));
+  const offsetYFactor = Math.max(-1, Math.min(1, parseFloat(cropOffsetYInput.value) || 0));
+  const source = selectedEditImageElement;
+  const sourceRatio = source.naturalWidth / source.naturalHeight;
+  const targetRatio = targetWidth / targetHeight;
+  let baseWidth;
+  let baseHeight;
+
+  if (sourceRatio > targetRatio) {
+    baseHeight = source.naturalHeight;
+    baseWidth = baseHeight * targetRatio;
+  } else {
+    baseWidth = source.naturalWidth;
+    baseHeight = baseWidth / targetRatio;
+  }
+
+  const cropWidth = Math.max(1, baseWidth / zoom);
+  const cropHeight = Math.max(1, baseHeight / zoom);
+  const extraX = Math.max(0, source.naturalWidth - cropWidth);
+  const extraY = Math.max(0, source.naturalHeight - cropHeight);
+  const sourceX = extraX / 2 + (extraX / 2) * offsetXFactor;
+  const sourceY = extraY / 2 + (extraY / 2) * offsetYFactor;
+  const context = canvas.getContext('2d');
+
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  context.clearRect(0, 0, targetWidth, targetHeight);
+  context.drawImage(source, sourceX, sourceY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight);
+}
+
+function renderCropPreview() {
+  updateCropIndicators();
+  const { width, height } = getCurrentTargetSize();
+  cropAspectLabel.textContent = aspectRatioSelect.value === 'custom' ? `${width}:${height}` : aspectRatioSelect.value;
+  if (!selectedEditImageElement) return;
+
+  const canvasWidth = 512;
+  const canvasHeight = Math.max(256, Math.round((canvasWidth * height) / width));
+  drawCropToCanvas(editCropCanvas, canvasWidth, canvasHeight);
+}
+
+async function setEditSource(source) {
+  selectedEditSource = source;
+  editSourcePreview.src = source.previewSrc;
+  editSourceLabel.textContent = source.label;
+  editSourceCard.hidden = false;
+  cropPanel.hidden = false;
+  cropOriginalPreview.src = source.previewSrc;
+  resetCropControls();
+  try {
+    selectedEditImageElement = await loadImageElement(source.previewSrc);
+    renderCropPreview();
+  } catch (error) {
+    selectedEditImageElement = null;
+    cropPanel.hidden = true;
+    requestPreview.innerHTML = `<p class="error">${error?.message || t('imageMissing')}</p>`;
+  }
+}
+
+function getPreparedEditPayload() {
+  if (!selectedEditSource) {
+    return {
+      editImagePath: '',
+      editImageDataUrl: '',
+      editImageName: ''
+    };
+  }
+
+  if (!selectedEditImageElement) {
+    return {
+      editImagePath: selectedEditSource.imagePath || '',
+      editImageDataUrl: selectedEditSource.dataUrl || '',
+      editImageName: selectedEditSource.label || ''
+    };
+  }
+
+  const { width, height } = getCurrentTargetSize();
+  const exportCanvas = document.createElement('canvas');
+  drawCropToCanvas(exportCanvas, width, height);
+  return {
+    editImagePath: '',
+    editImageDataUrl: exportCanvas.toDataURL('image/png'),
+    editImageName: selectedEditSource.label || ''
+  };
 }
 
 function updateStatus(text) {
@@ -391,6 +660,7 @@ function syncDimensionsFromRatio() {
   if (!ratio) {
     widthInput.removeAttribute('readonly');
     heightInput.removeAttribute('readonly');
+    renderCropPreview();
     return;
   }
   widthInput.setAttribute('readonly', 'readonly');
@@ -402,6 +672,7 @@ function syncDimensionsFromRatio() {
     heightInput.value = resolution;
     widthInput.value = Math.round((resolution * ratio.w) / ratio.h);
   }
+  renderCropPreview();
 }
 
 function syncHeightFromWidth() {
@@ -568,6 +839,7 @@ function createJobCard(payload, jobId) {
       <div class="job-setting"><strong>${t('styleTemplateLabel')}</strong><span>${payload.promptTemplate || '-'}</span></div>
       <div class="job-setting"><strong>${t('sizeLabel')}</strong><span>${payload.width}×${payload.height}</span></div>
       <div class="job-setting"><strong>${t('countLabel')}</strong><span>${payload.count}</span></div>
+      <div class="job-setting"><strong>${t('editMode')}</strong><span>${payload.editImageName ? t('sourceImage') : '-'}</span></div>
     </div>
     <div class="job-actions">
       <button type="button" class="secondary-button reuse-prompt-button">${t('reusePrompt')}</button>
@@ -637,6 +909,12 @@ function createHistoryCard(entry) {
             <path d="M4 18h16" />
           </svg>
         </a>
+        <button
+          type="button"
+          class="secondary-button compact-button edit-history-button"
+          data-src="${src}"
+          data-label="${entry.request?.promptTemplateName || t('savedGeneration')} ${index + 1}"
+        >${t('editImage')}</button>
       </div>
     </div>
   `).join('');
@@ -659,12 +937,25 @@ function createHistoryCard(entry) {
       <div class="job-setting"><strong>${t('resolutionLabel')}</strong><span>${entry.request?.resolution || 'n/a'}</span></div>
       <div class="job-setting"><strong>${t('aspectRatioLabel')}</strong><span>${entry.request?.aspectRatio || 'n/a'}</span></div>
       <div class="job-setting"><strong>${t('stepsSeedLabel')}</strong><span>${entry.request?.steps} / ${entry.request?.seed ?? t('random')}</span></div>
+      <div class="job-setting"><strong>${t('editMode')}</strong><span>${entry.request?.editImageName ? t('sourceImage') : '-'}</span></div>
     </div>
     <div class="job-images">${imageMarkup || `<div class="job-note">${t('imageMissing')}</div>`}</div>
   `;
 
   card.querySelectorAll('.preview-history-button').forEach((button) => {
     button.addEventListener('click', () => openLightbox(button.dataset.src));
+  });
+  card.querySelectorAll('.edit-history-button').forEach((button) => {
+    button.addEventListener('click', async () => {
+      await setEditSource({
+        kind: 'history',
+        label: button.dataset.label || t('sourceHistory'),
+        previewSrc: button.dataset.src,
+        imagePath: button.dataset.src,
+        dataUrl: '',
+      });
+      requestPreview.innerHTML = `<p><strong>${t('loaded')}</strong>: ${button.dataset.label || t('sourceHistory')}</p>`;
+    });
   });
   return card;
 }
@@ -717,6 +1008,20 @@ function updateJobCard(job, payload) {
           </svg>
         `;
         previewBtn.addEventListener('click', () => openLightbox(src));
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'secondary-button compact-button edit-job-image-button';
+        editBtn.textContent = t('editImage');
+        editBtn.addEventListener('click', async () => {
+          await setEditSource({
+            kind: 'generated',
+            label: `${t('sourceGenerated')} ${index + 1}`,
+            previewSrc: src,
+            imagePath: src,
+            dataUrl: '',
+          });
+          requestPreview.innerHTML = `<p><strong>${t('loaded')}</strong>: ${t('sourceGenerated')} ${index + 1}</p>`;
+        });
         const downloadLink = document.createElement('a');
         downloadLink.className = 'icon-tool-button';
         downloadLink.title = t('downloadImage');
@@ -730,7 +1035,7 @@ function updateJobCard(job, payload) {
             <path d="M4 18h16" />
           </svg>
         `;
-        tools.append(previewBtn, downloadLink);
+        tools.append(previewBtn, editBtn, downloadLink);
         imageCard.appendChild(tools);
         imagesContainer.appendChild(imageCard);
       });
@@ -764,6 +1069,7 @@ function renderRequestPreview(payload) {
     [t('previewPrompt'), payload.prompt],
     [t('previewSize'), `${payload.width}×${payload.height}`],
     [t('previewCount'), payload.count],
+    [t('editMode'), payload.editImageName ? t('sourceImage') : '-'],
     [t('previewSteps'), payload.steps],
     [t('previewSeed'), payload.seed || t('random')],
     [t('previewGuidance'), payload.guidance],
@@ -782,6 +1088,7 @@ async function startGeneration() {
   const promptTemplate = promptTemplateInput.value.trim();
   const promptTemplateName = templateNameInput.value.trim();
   syncDimensionsFromRatio();
+  renderCropPreview();
   const width = parseInt(document.getElementById('widthInput').value, 10) || 1024;
   const height = parseInt(document.getElementById('heightInput').value, 10) || 1024;
   const count = parseInt(document.getElementById('countInput').value, 10) || 1;
@@ -790,6 +1097,7 @@ async function startGeneration() {
   const guidance = parseFloat(guidanceInput.value) || 7.5;
   const gaussian = parseFloat(gaussianInput.value) || 0.8;
   const resolution = resolutionSelect.value;
+  const editPayload = getPreparedEditPayload();
 
   const payload = {
     prompt,
@@ -803,7 +1111,9 @@ async function startGeneration() {
     steps,
     seed,
     guidance,
-    gaussian
+    gaussian,
+    imageStrength: Math.max(0, Math.min(1, parseFloat(imageStrengthInput.value) || 0.45)),
+    ...editPayload
   };
 
   renderRequestPreview(payload);
@@ -892,13 +1202,15 @@ async function pollJob(job) {
 
 function persistHistoryEntry(payload) {
   const history = getHistory();
+  const request = { ...(payload.request || {}) };
+  delete request.editImageDataUrl;
   history.push({
     jobId: payload.jobId,
     status: payload.status,
     images: payload.images || [],
     generatedAt: payload.finishedAt || Date.now(),
     generatedAtLabel: new Date(payload.finishedAt || Date.now()).toLocaleString(),
-    request: payload.request || {}
+    request
   });
   saveHistory(history);
 }
@@ -951,6 +1263,7 @@ function refreshLiveJobCardsLocale() {
     if (settings[1]) settings[1].textContent = t('styleTemplateLabel');
     if (settings[2]) settings[2].textContent = t('sizeLabel');
     if (settings[3]) settings[3].textContent = t('countLabel');
+    if (settings[4]) settings[4].textContent = t('editMode');
     if (actions[0]) actions[0].textContent = t('reusePrompt');
     if (actions[1]) actions[1].textContent = t('saveAsStyle');
     if (actions[2]) actions[2].textContent = t('cancelTask');
@@ -961,6 +1274,9 @@ function refreshLiveJobCardsLocale() {
       const label = isDownload ? t('downloadImage') : t('previewImage');
       button.title = label;
       button.setAttribute('aria-label', label);
+    });
+    card.querySelectorAll('.edit-history-button, .edit-job-image-button').forEach((button) => {
+      button.textContent = t('editImage');
     });
   });
 }
