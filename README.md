@@ -1,10 +1,40 @@
 # Zimage WebUI for Mac
 
-一个面向本地运行的 Zimage 网页应用。
+<p align="center">
+  <img src="./assets/screenshots/zimage-home.png" alt="Zimage WebUI Home" width="920" />
+</p>
 
-这个项目的目标很直接：把 `Zimage` 这样的本地生图模型，封装成一个开箱即用的网页工具。你不需要去搭复杂的 ComfyUI 工作流，也不需要自己拼一堆节点。只要把项目下载到本地，安装依赖，启动服务，浏览器里就可以直接生成图片。
+<p align="center">
+  <a href="https://github.com/leigegehaha/zimage-webui/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-00d2a8.svg" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-111827.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/python-3.11%2B-3776AB.svg" alt="Python">
+  <img src="https://img.shields.io/badge/model-Zimage%20Turbo-ff4d8d.svg" alt="Model">
+  <img src="https://img.shields.io/badge/ui-local%20webui-f6c945.svg" alt="Local WebUI">
+</p>
+
+一个面向本地运行的 Zimage 网页应用，目标是把 `Zimage` 这样的本地生图模型，封装成一个开箱即用的网页工具。
+
+你不需要去搭复杂的 ComfyUI 工作流，也不需要自己拼一堆节点。只要把项目下载到本地，安装依赖，启动服务，浏览器里就可以直接生成图片。
 
 它更像是一个轻量、本地、可直接操作的 `Zimage WebUI`，而不是一个需要大量前置知识的工作流平台。
+
+## 项目亮点
+
+- 本地优先：下载代码后即可本地启动，不依赖远程网页服务
+- 降低门槛：不需要 ComfyUI 节点编排，直接网页操作
+- 自动下载模型：模型文件不进仓库，首次运行自动拉取，或通过 `download-model.sh` 一键预下载
+- 产品化交互：支持任务队列、历史记录、图片预览、下载、进度条、高级设置
+- 可扩展：内置 `skill/` 目录，可把 Zimage 能力继续封装到更大的自动化流程里
+
+## 页面预览
+
+### 主界面
+
+![Zimage WebUI Home](./assets/screenshots/zimage-home.png)
+
+### 高级参数抽屉
+
+![Zimage WebUI Settings](./assets/screenshots/zimage-settings.png)
 
 ## 项目定位
 
@@ -147,7 +177,7 @@ zimage/
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/<your-name>/zimage-webui.git
+git clone https://github.com/leigegehaha/zimage-webui.git
 cd zimage-webui
 ```
 
