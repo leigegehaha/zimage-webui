@@ -26,6 +26,7 @@
 - 想直接输入提示词并出图
 - 想调尺寸、比例、分辨率、步数、种子等参数
 - 想保留任务队列、历史记录、预览和下载能力
+- 想在本地做边界更宽、偏成熟内容的私有探索
 - 不想折腾 ComfyUI 的用户
 
 ## English Summary
@@ -40,6 +41,7 @@ This project is for users who want:
 - direct prompt-to-image generation in a browser
 - adjustable size, aspect ratio, resolution, steps, seed, and guidance
 - task queue, history, preview, and download support
+- more permissive private experimentation for mature visual concepts
 - a lighter workflow than ComfyUI
 
 ## Quick Start
@@ -94,6 +96,8 @@ http://127.0.0.1:8765
   首次运行自动下载，或通过 `download-model.sh` 一键预下载。
 - 产品化交互 / Productized UX
   任务队列、进度条、历史记录、图片预览、下载、高级参数抽屉。
+- 更自由的本地探索 / More permissive local exploration
+  更适合私有、成熟内容方向的本地创作与实验，生成样例可查看 `output/`。
 - 可扩展 / Extensible
   自带 `skill/` 目录，可继续接入更大的自动化流程。
 
@@ -119,8 +123,9 @@ http://127.0.0.1:8765
 - 出图速度较友好
 - 适合配合 Prompt 和风格模板快速创作
 - 内容限制相对更少，探索空间更大
+- 更适合做私有环境下的成熟内容实验
 
-需要说明的是，这个项目是本地工具，不内置线上平台那类强审核链路，因此模型可能生成更成人向、边界更宽的内容。示例可以在本地 `output/` 目录里自行查看，这里不展开描述。请确保你的使用符合所在地法律法规与平台要求。
+需要说明的是，这个项目是本地工具，不内置线上平台那类强审核链路，因此在成熟内容方向上的边界通常会更宽。你可以直接查看本地 `output/` 目录里的生成样例。这里不展开描述具体内容，但请确保你的使用符合所在地法律法规与平台要求。
 
 ### English
 
@@ -132,8 +137,9 @@ Key characteristics:
 - relatively fast iteration
 - prompt and style-template friendly
 - fewer built-in restrictions compared to many hosted services
+- better suited for private mature-content experimentation
 
-This repository is a local tool, not a hosted platform with a heavy moderation pipeline. As a result, the model may generate more permissive or adult-oriented outputs. Review your generated results locally and make sure your usage complies with local laws and platform requirements.
+This repository is a local tool, not a hosted platform with a heavy moderation pipeline. As a result, the boundary for mature content exploration is typically wider in private local use. You can review example outputs in the local `output/` directory. Make sure your usage complies with local laws and platform requirements.
 
 ## 功能特性 | Features
 
