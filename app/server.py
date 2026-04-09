@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import mimetypes
 import os
 import re
 import signal
@@ -24,6 +26,7 @@ import psutil
 BASE_DIR = Path(__file__).resolve().parents[1]
 WEB_DIR = BASE_DIR / "web"
 OUTPUT_DIR = BASE_DIR / "output"
+UPLOAD_DIR = BASE_DIR / "uploads"
 RUN_SCRIPT = BASE_DIR / "run-zimage.sh"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = int(os.environ.get("ZIMAGE_PORT", "8765"))
@@ -140,8 +143,13 @@ def normalize_request(payload: dict[str, Any]) -> dict[str, Any]:
     guidance = safe_float(payload.get("guidance"), 7.5, minimum=0.0, maximum=30.0)
     gaussian = safe_float(payload.get("gaussian"), 0.8, minimum=0.0, maximum=10.0)
     resolution = str(payload.get("resolution") or "standard")
+    aspect_ratio = str(payload.get("aspectRatio") or "custom")
     seed_raw = payload.get("seed")
     seed = None if seed_raw in ("", None) else safe_int(seed_raw, 42, minimum=0)
+    image_strength = safe_float(payload.get("imageStrength"), 0.4, minimum=0.0, maximum=1.0)
+    edit_image_path = str(payload.get("editImagePath") or "").strip()
+    edit_image_name = str(payload.get("editImageName") or "").strip()
+    edit_image_data_url = str(payload.get("editImageDataUrl") or "").strip()
 
     return {
         "prompt": prompt,
@@ -154,8 +162,55 @@ def normalize_request(payload: dict[str, Any]) -> dict[str, Any]:
         "guidance": guidance,
         "gaussian": gaussian,
         "resolution": resolution,
+        "aspectRatio": aspect_ratio,
         "seed": seed,
+        "imageStrength": image_strength,
+        "editImagePath": edit_image_path,
+        "editImageName": edit_image_name,
+        "editImageDataUrl": edit_image_data_url,
     }
+
+
+def decode_data_url(data_url: str) -> tuple[bytes, str]:
+    match = re.match(r"^data:(?P<mime>[-\w.+/]+);base64,(?P<data>.+)$", data_url)
+    if not match:
+        raise ValueError("invalid image data url")
+    try:
+        raw = base64.b64decode(match.group("data"), validate=True)
+    except ValueError as exc:
+        raise ValueError("invalid base64 image payload") from exc
+    extension = mimetypes.guess_extension(match.group("mime")) or ".png"
+    if extension == ".jpe":
+        extension = ".jpg"
+    return raw, extension
+
+
+def resolve_edit_image(request: dict[str, Any], job_id: str) -> Path | None:
+    edit_path = str(request.get("editImagePath") or "").strip()
+    if edit_path:
+        if edit_path.startswith("/api/images/"):
+            candidate = OUTPUT_DIR / edit_path.rsplit("/", 1)[-1]
+        elif edit_path.startswith("/api/uploads/"):
+            candidate = UPLOAD_DIR / edit_path.rsplit("/", 1)[-1]
+        else:
+            candidate = Path(edit_path)
+        candidate = candidate.resolve()
+        allowed_roots = [OUTPUT_DIR.resolve(), UPLOAD_DIR.resolve()]
+        if candidate.exists() and any(root == candidate.parent or root in candidate.parents for root in allowed_roots):
+            return candidate
+        raise ValueError("edit image not found")
+
+    data_url = str(request.get("editImageDataUrl") or "").strip()
+    if not data_url:
+        return None
+
+    raw, extension = decode_data_url(data_url)
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    upload_path = UPLOAD_DIR / f"upload-{job_id}{extension}"
+    upload_path.write_bytes(raw)
+    request["editImagePath"] = f"/api/uploads/{upload_path.name}"
+    request["editImageDataUrl"] = ""
+    return upload_path
 
 
 def build_command(job: Job) -> tuple[list[str], list[str]]:
@@ -166,6 +221,7 @@ def build_command(job: Job) -> tuple[list[str], list[str]]:
     prompt_text = request["prompt"]
     if request.get("promptTemplate"):
         prompt_text = f"{request['promptTemplate']}\n{prompt_text}"
+    edit_image_path = resolve_edit_image(request, job.job_id)
     command = [
         str(RUN_SCRIPT),
         "--prompt",
@@ -189,6 +245,10 @@ def build_command(job: Job) -> tuple[list[str], list[str]]:
 
     if request["count"] == 1:
         command.extend(["--output", str(single_output)])
+
+    if edit_image_path is not None:
+        command.extend(["--image-path", str(edit_image_path), "--image-strength", str(request["imageStrength"])])
+        notes.append(f"Editing source image: {request.get('editImageName') or edit_image_path.name}")
 
     return command, notes
 
@@ -387,6 +447,16 @@ class ZImageHandler(BaseHTTPRequestHandler):
             self._send_file(image_path, "image/png")
             return
 
+        if path.startswith("/api/uploads/"):
+            filename = path.rsplit("/", 1)[-1]
+            upload_path = UPLOAD_DIR / filename
+            if not upload_path.exists() or not upload_path.is_file():
+                self._send_json({"error": "upload not found"}, status=404)
+                return
+            content_type = mimetypes.guess_type(upload_path.name)[0] or "application/octet-stream"
+            self._send_file(upload_path, content_type)
+            return
+
         static_path = WEB_DIR / ("index.html" if path in ("/", "") else path.lstrip("/"))
         if not static_path.exists() or not static_path.is_file():
             self._send_json({"error": "not found"}, status=404)
@@ -448,6 +518,7 @@ def main() -> None:
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     server = ThreadingHTTPServer((args.host, args.port), ZImageHandler)
     print(f"Z-Image app running at http://{args.host}:{args.port}")
     try:
