@@ -12,6 +12,8 @@ DEFAULT_PREFIX="image"
 DEFAULT_SEED=""
 DEFAULT_GUIDANCE=""
 DEFAULT_GAUSSIAN=""
+DEFAULT_IMAGE_PATH=""
+DEFAULT_IMAGE_STRENGTH=""
 
 if [[ ! -x "$GENERATOR" ]]; then
   echo "mflux is not installed in $BASE_DIR/.venv"
@@ -41,6 +43,8 @@ Options:
   --output PATH       Output file path, only valid when --count 1
   --prefix NAME       Output filename prefix for batch mode, default image
   --gaussian VALUE    Gaussian noise setting (accepted but not supported in CLI)
+  --image-path PATH   Reference image path for image editing
+  --image-strength N  Image edit strength, usually between 0 and 1
   --help              Show this help
 
 Examples:
@@ -60,6 +64,8 @@ PREFIX="$DEFAULT_PREFIX"
 SEED="$DEFAULT_SEED"
 GUIDANCE="$DEFAULT_GUIDANCE"
 GAUSSIAN="$DEFAULT_GAUSSIAN"
+IMAGE_PATH="$DEFAULT_IMAGE_PATH"
+IMAGE_STRENGTH="$DEFAULT_IMAGE_STRENGTH"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -103,6 +109,14 @@ while [[ $# -gt 0 ]]; do
       GAUSSIAN="${2:-}"
       shift 2
       ;;
+    --image-path)
+      IMAGE_PATH="${2:-}"
+      shift 2
+      ;;
+    --image-strength)
+      IMAGE_STRENGTH="${2:-}"
+      shift 2
+      ;;
     --help|-h)
       usage
       exit 0
@@ -142,6 +156,11 @@ if [[ -n "$GUIDANCE" ]] && ! [[ "$GUIDANCE" =~ '^[0-9]+([.][0-9]+)?$' ]]; then
   exit 1
 fi
 
+if [[ -n "$IMAGE_STRENGTH" ]] && ! [[ "$IMAGE_STRENGTH" =~ '^[0-9]+([.][0-9]+)?$' ]]; then
+  echo "image-strength must be a positive number" >&2
+  exit 1
+fi
+
 if (( COUNT < 1 )); then
   echo "count must be at least 1" >&2
   exit 1
@@ -173,6 +192,14 @@ run_generation() {
 
   if [[ -n "$GUIDANCE" ]]; then
     cmd+=(--guidance "$GUIDANCE")
+  fi
+
+  if [[ -n "$IMAGE_PATH" ]]; then
+    cmd+=(--image-path "$IMAGE_PATH")
+  fi
+
+  if [[ -n "$IMAGE_STRENGTH" ]]; then
+    cmd+=(--image-strength "$IMAGE_STRENGTH")
   fi
 
   # gaussian is accepted but not used by the CLI
