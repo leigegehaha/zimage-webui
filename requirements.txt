@@ -1,0 +1,3 @@
+mflux==0.17.4
+Pillow==12.2.0
+psutil>=5.9

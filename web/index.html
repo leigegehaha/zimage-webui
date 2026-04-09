@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zimage Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-main">
+        <p class="eyebrow">Zimage · Pixel Lab</p>
+        <h1>Zimage Generator</h1>
+        <p class="subtitle" data-i18n="subtitle">输入提示词，调整尺寸与分辨率，在高饱和像素瀑布流里生成图像。</p>
+      </div>
+        <div class="header-actions">
+          <section class="system-panel" id="systemPanel">
+            <div class="system-metric"><strong>CPU</strong><span id="cpuUsage">--</span></div>
+            <div class="system-metric"><strong>MEM</strong><span id="memoryUsage">--</span></div>
+            <div class="system-metric"><strong>GPU</strong><span id="gpuUsage">--</span></div>
+          </section>
+          <button class="language-button" id="languageToggle" type="button" data-i18n="languageToggle">EN</button>
+          <button class="settings-button" id="settingsToggle" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="2.5" />
+            <path d="M12 2v3" />
+            <path d="M12 19v3" />
+            <path d="M4.9 4.9l2.1 2.1" />
+            <path d="M17 17l2.1 2.1" />
+            <path d="M2 12h3" />
+            <path d="M19 12h3" />
+            <path d="M4.9 19.1l2.1-2.1" />
+            <path d="M17 7l2.1-2.1" />
+          </svg>
+          <span data-i18n="advancedSettings">高级设置</span>
+        </button>
+        <div class="header-icons">
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <circle cx="32" cy="32" r="30" />
+            <path d="M18 24 L26 32 L38 20 L46 28" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <circle cx="44" cy="20" r="3" />
+          </svg>
+          <span class="header-label">Pixel-Driven AI</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="control-panel">
+        <form id="generationForm" class="generation-form">
+          <label class="field">
+            <span data-i18n="prompt">提示词</span>
+            <textarea id="promptInput" rows="3" data-i18n-placeholder="promptPlaceholder" placeholder="描述你想生成的画面...">一只橘猫坐在木桌上，窗边自然光，写实风格</textarea>
+          </label>
+
+          <label class="field">
+            <span data-i18n="styleTemplate">风格模板</span>
+            <textarea id="promptTemplateInput" rows="3" data-i18n-placeholder="styleTemplatePlaceholder" placeholder="可复用的风格模板...">pixel-art scene, saturated palette, crisp edges, stylized lighting</textarea>
+          </label>
+
+          <label class="field">
+            <span data-i18n="styleTemplateName">风格模板名称</span>
+            <input id="templateNameInput" type="text" data-i18n-placeholder="styleTemplateNamePlaceholder" placeholder="例如：像素海报" />
+          </label>
+
+          <div class="grid-two">
+            <label class="field">
+              <span data-i18n="width">宽度</span>
+              <input id="widthInput" type="number" min="64" step="64" value="1024" />
+            </label>
+            <label class="field">
+              <span data-i18n="height">高度</span>
+              <input id="heightInput" type="number" min="64" step="64" value="1024" />
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span data-i18n="count">张数</span>
+              <input id="countInput" type="number" min="1" max="8" value="1" />
+            </label>
+            <label class="field">
+              <span data-i18n="resolution">分辨率</span>
+              <select id="resolutionSelect">
+                <option value="1080p" selected>1080p</option>
+                <option value="2k">2K</option>
+                <option value="4k">4K</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span data-i18n="aspectRatio">画幅比例</span>
+              <select id="aspectRatioSelect">
+                <option value="1:1">1:1</option>
+                <option value="4:3">4:3</option>
+                <option value="3:4">3:4</option>
+                <option value="16:9">16:9</option>
+                <option value="9:16">9:16</option>
+                <option value="custom" data-i18n="custom">自定义</option>
+              </select>
+            </label>
+            <label class="field">
+              <span data-i18n="previewLimit">预览上限</span>
+              <input id="previewLimitInput" type="number" min="1" max="4" value="4" />
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button type="submit" id="generateButton" data-i18n="generate">生成</button>
+            <div class="status-badge">
+              <span id="statusLabel">空闲</span>
+              <span class="timer"><span data-i18n="elapsed">耗时</span><strong id="timerValue">00:00</strong></span>
+            </div>
+          </div>
+        </form>
+
+        <section class="template-panel">
+          <div class="template-panel-header">
+            <p class="eyebrow" data-i18n="styleTemplates">风格模板</p>
+            <span class="template-count" id="templateCount">0 saved</span>
+          </div>
+          <label class="field">
+            <span data-i18n="savedStyleTemplate">已保存风格模板</span>
+            <select id="templateSelect">
+              <option value="" data-i18n="noSavedTemplates">暂无已保存模板</option>
+            </select>
+          </label>
+          <div class="template-actions">
+            <button type="button" class="icon-action-button" id="saveTemplateButton" title="保存模板" aria-label="保存模板">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 4h11l3 3v13H5Z" />
+                <path d="M8 4v6h8V4" />
+                <path d="M9 18h6" />
+              </svg>
+            </button>
+            <button type="button" class="icon-action-button" id="updateTemplateButton" title="编辑模板" aria-label="编辑模板">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 20h4l10-10-4-4L4 16Z" />
+                <path d="M12 6 16 10" />
+              </svg>
+            </button>
+            <button type="button" class="icon-action-button" id="reuseTemplateButton" title="复用模板" aria-label="复用模板">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 8h10v10" />
+                <path d="M16 16H6V6" />
+                <path d="M8 8h8v8" />
+              </svg>
+            </button>
+            <button type="button" class="icon-action-button danger-button" id="deleteTemplateButton" title="删除模板" aria-label="删除模板">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 7h14" />
+                <path d="M9 7V4h6v3" />
+                <path d="M8 7v12" />
+                <path d="M12 7v12" />
+                <path d="M16 7v12" />
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <div class="request-preview" id="requestPreview">
+          <p data-i18n="lastJobPlaceholder">最近一次任务详情会显示在这里。</p>
+        </div>
+      </section>
+
+      <section class="result-stream" id="resultStream">
+        <div class="empty-state">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <rect width="24" height="24" x="18" y="32" />
+            <rect width="24" height="24" x="48" y="32" />
+            <rect width="24" height="24" x="78" y="32" />
+            <path d="M18 68h84" />
+            <path d="M42 44 l20 20 l20 -20" />
+          </svg>
+          <p data-i18n="emptyState">结果流会显示在这里。点击“生成”即可加入一个或多个并发任务。</p>
+        </div>
+        <div class="history-divider" id="historyDivider" hidden>
+          <span data-i18n="history">历史记录</span>
+        </div>
+      </section>
+
+    </main>
+
+    <aside class="drawer" id="settingsDrawer">
+      <div class="drawer-header">
+        <div>
+          <p class="eyebrow" data-i18n="comfyControls">Comfy 参数</p>
+          <h2 data-i18n="fineTuning">精细调参</h2>
+        </div>
+        <button id="settingsClose" type="button" data-i18n="close">关闭</button>
+      </div>
+      <div class="drawer-body">
+        <label class="field">
+          <span data-i18n="steps">步数</span>
+          <input id="stepsInput" type="number" min="1" max="256" value="9" />
+        </label>
+        <label class="field">
+          <span data-i18n="seed">种子</span>
+          <input id="seedInput" type="number" min="0" value="42" />
+        </label>
+        <label class="field">
+          <span data-i18n="guidance">引导强度</span>
+          <input id="guidanceInput" type="number" min="1" max="30" step="0.1" value="7.5" />
+        </label>
+        <label class="field range-field">
+          <span data-i18n="gaussianBlur">高斯模糊</span>
+          <input id="gaussianInput" type="range" min="0" max="2" step="0.1" value="0.8" />
+          <span class="range-value" id="gaussianValue">0.8</span>
+        </label>
+      </div>
+      <div class="drawer-footer">
+        <p data-i18n="drawerFooter">这些参数会控制 Z-Image-Turbo，刷新页面前会一直保留。</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="lightbox" id="lightbox">
+    <button class="lightbox-close" id="lightboxClose" type="button" data-i18n="close">关闭</button>
+    <img id="lightboxImage" alt="Preview" />
+    <a id="lightboxDownload" class="secondary-button" download data-i18n="download">下载</a>
+  </div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

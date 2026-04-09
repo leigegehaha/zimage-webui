@@ -1,0 +1,14 @@
+{
+  "generator_path": "../../.venv/bin/mflux-generate-z-image-turbo",
+  "model": "carsenk/z-image-turbo-mflux-8bit",
+  "hf_home": "../../hf-cache",
+  "hf_hub_cache": "../../hf-cache/hub",
+  "output_dir": "../output",
+  "default_resolution": "1080p",
+  "default_aspect_ratio": "1:1",
+  "default_count": 1,
+  "steps": 9,
+  "seed": 42,
+  "guidance": 7.5,
+  "gaussian": 0.8
+}

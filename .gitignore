@@ -1,0 +1,8 @@
+.DS_Store
+.venv/
+hf-cache/
+output/
+skill/output/
+app/__pycache__/
+skill/scripts/__pycache__/
+*.pyc
