@@ -68,6 +68,72 @@
             <input id="templateNameInput" type="text" data-i18n-placeholder="styleTemplateNamePlaceholder" placeholder="例如：像素海报" />
           </label>
 
+          <section class="edit-panel" id="editPanel">
+            <div class="edit-panel-header">
+              <p class="eyebrow" data-i18n="imageEditing">图片编辑</p>
+              <button type="button" class="secondary-button compact-button" id="clearEditImageButton" data-i18n="clearEditSource">清除编辑图</button>
+            </div>
+            <div class="edit-upload-row">
+              <input id="editImageInput" type="file" accept="image/*" hidden />
+              <button type="button" class="secondary-button" id="uploadEditImageButton" data-i18n="uploadImage">上传图片</button>
+              <div class="edit-drop-zone" id="editDropZone" tabindex="0">
+                <div class="edit-drop-zone-copy">
+                  <strong data-i18n="dropImageTitle">拖拽图片到这里</strong>
+                  <span data-i18n="dropImageHint">支持拖拽上传，也可点击左侧按钮选择文件。</span>
+                </div>
+              </div>
+            </div>
+            <label class="field range-field">
+                <span data-i18n="imageStrength">编辑强度</span>
+                <input id="imageStrengthInput" type="range" min="0" max="1" step="0.05" value="0.45" />
+                <span class="range-value" id="imageStrengthValue">0.45</span>
+            </label>
+            <div class="edit-source-card" id="editSourceCard" hidden>
+              <img id="editSourcePreview" alt="Edit source preview" />
+              <div class="edit-source-meta">
+                <strong id="editSourceLabel">-</strong>
+                <span id="editSourceHint" data-i18n="editSourceHint">当前会以这张图作为编辑输入。</span>
+              </div>
+            </div>
+            <div class="crop-panel" id="cropPanel" hidden>
+              <div class="crop-panel-header">
+                <p class="eyebrow" data-i18n="cropPreview">裁剪预览</p>
+                <span class="crop-panel-tag" id="cropAspectLabel">1:1</span>
+              </div>
+              <div class="crop-preview-grid">
+                <div class="crop-preview-card">
+                  <span data-i18n="originalThumbnail">原图缩略图</span>
+                  <div class="crop-preview-original">
+                    <img id="cropOriginalPreview" alt="Original source preview" />
+                  </div>
+                </div>
+                <div class="crop-preview-card">
+                  <span data-i18n="croppedThumbnail">裁剪后缩略图</span>
+                  <div class="crop-preview-canvas-wrap">
+                    <canvas id="editCropCanvas" width="512" height="512"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="crop-controls">
+                <label class="field range-field">
+                  <span data-i18n="cropZoom">缩放</span>
+                  <input id="cropZoomInput" type="range" min="1" max="3" step="0.05" value="1" />
+                  <span class="range-value" id="cropZoomValue">1.00x</span>
+                </label>
+                <label class="field range-field">
+                  <span data-i18n="cropOffsetX">水平偏移</span>
+                  <input id="cropOffsetXInput" type="range" min="-1" max="1" step="0.01" value="0" />
+                  <span class="range-value" id="cropOffsetXValue">0%</span>
+                </label>
+                <label class="field range-field">
+                  <span data-i18n="cropOffsetY">垂直偏移</span>
+                  <input id="cropOffsetYInput" type="range" min="-1" max="1" step="0.01" value="0" />
+                  <span class="range-value" id="cropOffsetYValue">0%</span>
+                </label>
+              </div>
+            </div>
+          </section>
+
           <div class="grid-two">
             <label class="field">
               <span data-i18n="width">宽度</span>
