@@ -195,6 +195,195 @@ body {
   resize: vertical;
 }
 
+.inline-field {
+  flex: 1;
+}
+
+.compact-button {
+  padding: 8px 12px;
+  font-size: 0.68rem;
+}
+
+.edit-panel {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.edit-upload-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.edit-drop-zone {
+  flex: 1;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px dashed rgba(60, 255, 213, 0.4);
+  background:
+    linear-gradient(135deg, rgba(255, 43, 111, 0.08), rgba(60, 255, 213, 0.08)),
+    rgba(255, 255, 255, 0.03);
+  padding: 14px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.edit-drop-zone:hover,
+.edit-drop-zone:focus-visible,
+.edit-drop-zone.is-dragover {
+  border-color: rgba(246, 224, 99, 0.7);
+  background:
+    linear-gradient(135deg, rgba(255, 43, 111, 0.14), rgba(60, 255, 213, 0.14)),
+    rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.edit-drop-zone-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-drop-zone-copy strong {
+  color: var(--accent-2);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.edit-drop-zone-copy span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.edit-source-card {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.edit-source-card img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.edit-source-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.edit-source-meta strong {
+  color: var(--accent-2);
+  font-size: 0.82rem;
+}
+
+.edit-source-meta span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.crop-panel {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.crop-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.crop-panel-tag {
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(246, 224, 99, 0.35);
+  background: rgba(246, 224, 99, 0.08);
+  color: var(--accent-2);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.crop-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.crop-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.crop-preview-card > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.crop-preview-original,
+.crop-preview-canvas-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  min-height: 168px;
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.crop-preview-original img,
+.crop-preview-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 168px;
+  object-fit: contain;
+}
+
+.crop-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
 .secondary-button {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -591,6 +780,7 @@ button#generateButton:disabled {
   gap: 8px;
   padding: 8px;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .icon-tool-button {
@@ -780,6 +970,16 @@ button#generateButton:disabled {
   }
 
   .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-upload-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .crop-preview-grid,
+  .crop-controls {
     grid-template-columns: 1fr;
   }
 
