@@ -26,8 +26,10 @@
 - 想直接输入提示词并出图
 - 想调尺寸、比例、分辨率、步数、种子等参数
 - 想保留任务队列、历史记录、预览和下载能力
-- 想在本地做边界更宽、偏成熟内容的私有探索
+- 想在本地做边界更宽、偏成熟内容的私有探索, 没有审查，可以在本地生成色色内容。具体可以去 output 目录看看
 - 不想折腾 ComfyUI 的用户
+
+![Zimage WebUI Home](./output/job-aeb442b18645-20260409-150212-002.png)
 
 ## English Summary
 
@@ -46,9 +48,6 @@ This project is for users who want:
 
 ## Quick Start
 
-### Demo GIF
-
-![Quick Start GIF](./assets/screenshots/quick-start.gif)
 
 ### 中文
 
