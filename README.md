@@ -10,9 +10,14 @@
   <img src="https://img.shields.io/badge/python-3.11%2B-3776AB.svg" alt="Python">
   <img src="https://img.shields.io/badge/model-Zimage%20Turbo-ff4d8d.svg" alt="Model">
   <img src="https://img.shields.io/badge/ui-local%20webui-f6c945.svg" alt="Local WebUI">
+  <a href="https://zhuanlan.zhihu.com/p/2027097934508880925"><img src="https://img.shields.io/badge/Zhihu-项目文章-0084FF.svg" alt="Zhihu Article"></a>
 </p>
 
 > 中文 / English bilingual README
+
+## 项目文章 | Article
+
+- 知乎文章 / Zhihu: https://zhuanlan.zhihu.com/p/2027097934508880925
 
 ## 中文简介
 

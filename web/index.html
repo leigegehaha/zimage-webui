@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Zimage Generator</title>
+  <title id="pageTitle">Zimage Generator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet" />
@@ -14,8 +14,8 @@
   <div class="app-shell">
     <header class="app-header">
       <div class="header-main">
-        <p class="eyebrow">Zimage · Pixel Lab</p>
-        <h1>Zimage Generator</h1>
+        <p class="eyebrow" id="appEyebrow">Zimage · Pixel Lab</p>
+        <h1 id="appTitle">Zimage Generator</h1>
         <p class="subtitle" data-i18n="subtitle">输入提示词，调整尺寸与分辨率，在高饱和像素瀑布流里生成图像。</p>
       </div>
         <div class="header-actions">
@@ -53,6 +53,14 @@
     <main class="layout">
       <section class="control-panel">
         <form id="generationForm" class="generation-form">
+          <label class="field">
+            <span data-i18n="modelSelector">模型选择</span>
+            <select id="modelSelect">
+              <option value="zimage" selected data-i18n="modelZimage">Z image</option>
+              <option value="qimage" data-i18n="modelQimage">Qwen Image 2512</option>
+            </select>
+          </label>
+
           <label class="field">
             <span data-i18n="prompt">提示词</span>
             <textarea id="promptInput" rows="3" data-i18n-placeholder="promptPlaceholder" placeholder="描述你想生成的画面...">一只橘猫坐在木桌上，窗边自然光，写实风格</textarea>

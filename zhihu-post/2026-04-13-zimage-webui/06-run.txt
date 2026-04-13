@@ -1,0 +1,21 @@
+部署这部分我也尽量压到了“普通人能照着跑”的程度。
+
+核心流程基本就是：
+
+```bash
+git clone https://github.com/leigegehaha/zimage-webui.git
+cd zimage-webui
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+chmod +x start-webapp.sh
+./start-webapp.sh
+```
+
+然后浏览器打开：
+
+```text
+http://127.0.0.1:8765
+```
+
+仓库本身不上传模型权重，第一次运行时会自动下载，或者也可以用 `download-model.sh` 先预下载。

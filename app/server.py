@@ -30,6 +30,24 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 RUN_SCRIPT = BASE_DIR / "run-zimage.sh"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = int(os.environ.get("ZIMAGE_PORT", "8765"))
+MODEL_CONFIGS = {
+    "zimage": {
+        "backend": "zimage",
+        "label": "Z image",
+        "model": "carsenk/z-image-turbo-mflux-8bit",
+        "base_model": "",
+        "low_ram": False,
+        "mlx_cache_limit_gb": "",
+    },
+    "qimage": {
+        "backend": "qimage",
+        "label": "Qwen Image 2512",
+        "model": str(BASE_DIR / "models" / "qwen-image-2512-4bit"),
+        "base_model": "qwen",
+        "low_ram": True,
+        "mlx_cache_limit_gb": "8",
+    },
+}
 
 
 def now_ms() -> int:
@@ -112,7 +130,8 @@ def estimate_duration_ms(request: dict[str, Any]) -> int:
     pixels_factor = max(1.0, (request.get("width", 1024) * request.get("height", 1024)) / (1024 * 1024))
     count_factor = max(1, int(request.get("count", 1)))
     steps_factor = max(1, int(request.get("steps", 9)))
-    return int(1800 + (steps_factor * 260 * pixels_factor * count_factor))
+    backend_factor = 2.8 if request.get("modelType") == "qimage" else 1.0
+    return int(1800 + (steps_factor * 260 * pixels_factor * count_factor * backend_factor))
 
 
 def estimate_progress(status: str, elapsed_ms: int | None, estimated_ms: int) -> int:
@@ -136,6 +155,9 @@ def normalize_request(payload: dict[str, Any]) -> dict[str, Any]:
 
     prompt_template = str(payload.get("promptTemplate") or "").strip()
     prompt_template_name = str(payload.get("promptTemplateName") or "").strip()
+    model_type = str(payload.get("modelType") or "zimage").strip().lower()
+    if model_type not in MODEL_CONFIGS:
+        raise ValueError("unsupported model type")
     width = safe_int(payload.get("width"), 1024, minimum=64)
     height = safe_int(payload.get("height"), 1024, minimum=64)
     count = safe_int(payload.get("count"), 1, minimum=1, maximum=8)
@@ -155,6 +177,8 @@ def normalize_request(payload: dict[str, Any]) -> dict[str, Any]:
         "prompt": prompt,
         "promptTemplate": prompt_template,
         "promptTemplateName": prompt_template_name,
+        "modelType": model_type,
+        "modelLabel": MODEL_CONFIGS[model_type]["label"],
         "width": width,
         "height": height,
         "count": count,
@@ -215,9 +239,10 @@ def resolve_edit_image(request: dict[str, Any], job_id: str) -> Path | None:
 
 def build_command(job: Job) -> tuple[list[str], list[str]]:
     request = job.request
+    model_config = MODEL_CONFIGS[request["modelType"]]
     prefix = sanitize_filename(f"job-{job.job_id}")
     single_output = OUTPUT_DIR / f"{prefix}.png"
-    notes: list[str] = []
+    notes: list[str] = [f"Backend: {model_config['label']}"]
     prompt_text = request["prompt"]
     if request.get("promptTemplate"):
         prompt_text = f"{request['promptTemplate']}\n{prompt_text}"
@@ -226,6 +251,10 @@ def build_command(job: Job) -> tuple[list[str], list[str]]:
         str(RUN_SCRIPT),
         "--prompt",
         prompt_text,
+        "--backend",
+        str(model_config["backend"]),
+        "--model",
+        str(model_config["model"]),
         "--width",
         str(request["width"]),
         "--height",
@@ -239,6 +268,15 @@ def build_command(job: Job) -> tuple[list[str], list[str]]:
         "--prefix",
         prefix,
     ]
+
+    if model_config.get("base_model"):
+        command.extend(["--base-model", str(model_config["base_model"])])
+
+    if model_config.get("low_ram"):
+        command.append("--low-ram")
+
+    if model_config.get("mlx_cache_limit_gb"):
+        command.extend(["--mlx-cache-limit-gb", str(model_config["mlx_cache_limit_gb"])])
 
     if request["seed"] is not None:
         command.extend(["--seed", str(request["seed"])])
@@ -279,6 +317,18 @@ def apply_gaussian_blur(image_paths: list[Path], radius: float) -> list[str]:
     return notes
 
 
+def readable_image_paths(image_paths: list[Path]) -> list[Path]:
+    readable: list[Path] = []
+    for image_path in image_paths:
+        try:
+            with Image.open(image_path) as image:
+                image.verify()
+            readable.append(image_path)
+        except Exception:
+            continue
+    return readable
+
+
 def run_job(job_id: str) -> None:
     with JOBS_LOCK:
         job = JOBS[job_id]
@@ -301,7 +351,7 @@ def run_job(job_id: str) -> None:
             JOB_PROCS[job_id] = proc
         stdout, stderr = proc.communicate()
         finished_at = now_ms()
-        image_paths = collect_image_paths(job)
+        image_paths = readable_image_paths(collect_image_paths(job))
         blur_notes = apply_gaussian_blur(image_paths, float(job.request.get("gaussian") or 0))
         images = [f"/api/images/{path.name}" for path in image_paths]
 
@@ -317,8 +367,10 @@ def run_job(job_id: str) -> None:
             if job.cancelled:
                 job.status = "cancelled"
                 job.error = "任务已取消。"
-            elif proc.returncode == 0 and images:
+            elif images:
                 job.status = "completed"
+                if proc.returncode != 0:
+                    job.notes.append(f"Generator exited with code {proc.returncode} after writing image output.")
             elif proc.returncode == 0:
                 job.status = "failed"
                 job.error = "生成命令成功结束，但没有找到输出图片。"

@@ -1,0 +1,1 @@
+我把 Zimage 做成了一个本地 WebUI，现在终于不用先学 ComfyUI 了

@@ -10,6 +10,9 @@ const settingsToggle = document.getElementById('settingsToggle');
 const settingsClose = document.getElementById('settingsClose');
 const generateButton = document.getElementById('generateButton');
 const languageToggle = document.getElementById('languageToggle');
+const modelSelect = document.getElementById('modelSelect');
+const appTitle = document.getElementById('appTitle');
+const appEyebrow = document.getElementById('appEyebrow');
 
 const stepsInput = document.getElementById('stepsInput');
 const seedInput = document.getElementById('seedInput');
@@ -57,12 +60,49 @@ const cropOffsetYValue = document.getElementById('cropOffsetYValue');
 const TEMPLATE_STORAGE_KEY = 'zimage.prompt.templates';
 const HISTORY_STORAGE_KEY = 'zimage.generation.history';
 const LANGUAGE_STORAGE_KEY = 'zimage.ui.language';
+const MODEL_STORAGE_KEY = 'zimage.ui.model';
 const jobs = new Map();
 let dashboardTimerHandle = null;
 let systemTimerHandle = null;
 let currentLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'zh';
+let currentModelType = localStorage.getItem(MODEL_STORAGE_KEY) || 'zimage';
 let selectedEditSource = null;
 let selectedEditImageElement = null;
+
+const modelPresentation = {
+  zimage: {
+    title: { zh: 'Zimage Generator', en: 'Zimage Generator' },
+    eyebrow: { zh: 'Zimage · Pixel Lab', en: 'Zimage · Pixel Lab' },
+    subtitle: {
+      zh: '输入提示词，调整尺寸与分辨率，在高饱和像素瀑布流里生成图像。',
+      en: 'Input prompts, adjust size and resolution, and generate images in a saturated pixel waterfall.'
+    },
+    promptPlaceholder: {
+      zh: '描述你想生成的 Z image 画面...',
+      en: 'Describe the Z image scene you want to generate...'
+    },
+    drawerFooter: {
+      zh: '这些参数会控制 Z image 后端，刷新页面前会一直保留。',
+      en: 'These controls apply to the Z image backend until you refresh the page.'
+    }
+  },
+  qimage: {
+    title: { zh: 'Qwen Image 2512 Generator', en: 'Qwen Image 2512 Generator' },
+    eyebrow: { zh: 'Qwen Image 2512 · Pixel Lab', en: 'Qwen Image 2512 · Pixel Lab' },
+    subtitle: {
+      zh: '输入提示词，调用 Qwen Image 2512 后端，在同一套像素工作台里生成图像。',
+      en: 'Use the same pixel workbench with the Qwen Image 2512 backend for generation.'
+    },
+    promptPlaceholder: {
+      zh: '描述你想生成的 Qwen Image 2512 画面...',
+      en: 'Describe the Qwen Image 2512 scene you want to generate...'
+    },
+    drawerFooter: {
+      zh: '这些参数会控制 Qwen Image 2512 后端，刷新页面前会一直保留。',
+      en: 'These controls apply to the Qwen Image 2512 backend until you refresh the page.'
+    }
+  }
+};
 
 const resolutionProfiles = {
   '1080p': 1080,
@@ -98,6 +138,10 @@ const translations = {
     subtitle: '输入提示词，调整尺寸与分辨率，在高饱和像素瀑布流里生成图像。',
     languageToggle: 'EN',
     advancedSettings: '高级设置',
+    modelSelector: '模型选择',
+    modelZimage: 'Z image',
+    modelQimage: 'Qwen Image 2512',
+    modelLabel: '模型',
     prompt: '提示词',
     promptPlaceholder: '描述你想生成的画面...',
     styleTemplate: '风格模板',
@@ -148,7 +192,7 @@ const translations = {
     seed: '种子',
     guidance: '引导强度',
     gaussianBlur: '高斯模糊',
-    drawerFooter: '这些参数会控制 Z-Image-Turbo，刷新页面前会一直保留。',
+    drawerFooter: '这些参数会控制当前模型后端，刷新页面前会一直保留。',
     download: '下载',
     previewImage: '预览图片',
     downloadImage: '下载图片',
@@ -195,6 +239,9 @@ const translations = {
     generationCancelled: '生成已取消。',
     unableToReach: '无法连接本地生成服务。',
     failedToStartGeneration: '启动生成失败',
+    previewModel: '模型',
+    expandPrompt: '展开',
+    collapsePrompt: '收起',
     previewPrompt: '提示词',
     previewSize: '尺寸',
     previewCount: '张数',
@@ -208,6 +255,10 @@ const translations = {
     subtitle: 'Input prompts, adjust size and resolution, and generate images in a saturated pixel waterfall.',
     languageToggle: '中文',
     advancedSettings: 'Advanced Settings',
+    modelSelector: 'Model',
+    modelZimage: 'Z image',
+    modelQimage: 'Qwen Image 2512',
+    modelLabel: 'Model',
     prompt: 'Prompt',
     promptPlaceholder: 'Describe the scene you want to generate...',
     styleTemplate: 'Style Template',
@@ -258,7 +309,7 @@ const translations = {
     seed: 'Seed',
     guidance: 'Guidance',
     gaussianBlur: 'Gaussian Blur',
-    drawerFooter: 'These knobs control Z-Image-Turbo and persist until you refresh the page.',
+    drawerFooter: 'These controls apply to the active backend until you refresh the page.',
     download: 'Download',
     previewImage: 'Preview image',
     downloadImage: 'Download image',
@@ -305,6 +356,9 @@ const translations = {
     generationCancelled: 'Generation cancelled.',
     unableToReach: 'Unable to reach the local generator.',
     failedToStartGeneration: 'Failed to start generation',
+    previewModel: 'Model',
+    expandPrompt: 'Expand',
+    collapsePrompt: 'Collapse',
     previewPrompt: 'Prompt',
     previewSize: 'Size',
     previewCount: 'Count',
@@ -364,6 +418,7 @@ deleteTemplateButton.addEventListener('click', deleteTemplate);
 templateSelect.addEventListener('change', syncSelectedTemplateToForm);
 lightboxClose.addEventListener('click', closeLightbox);
 languageToggle.addEventListener('click', toggleLanguage);
+modelSelect.addEventListener('change', handleModelChange);
 uploadEditImageButton.addEventListener('click', () => editImageInput.click());
 clearEditImageButton.addEventListener('click', clearEditSource);
 editImageInput.addEventListener('change', handleEditUploadChange);
@@ -405,6 +460,40 @@ function t(key, vars = {}) {
   return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ''));
 }
 
+function getModelCopy() {
+  return modelPresentation[currentModelType] || modelPresentation.zimage;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function applyModelPresentation() {
+  const copy = getModelCopy();
+  const language = currentLanguage === 'zh' ? 'zh' : 'en';
+  const title = copy.title[language];
+  const eyebrow = copy.eyebrow[language];
+  const subtitle = copy.subtitle[language];
+  const promptPlaceholder = copy.promptPlaceholder[language];
+  const drawerFooterText = copy.drawerFooter[language];
+
+  document.title = title;
+  if (appTitle) appTitle.textContent = title;
+  if (appEyebrow) appEyebrow.textContent = eyebrow;
+  const subtitleNode = document.querySelector('.subtitle');
+  if (subtitleNode) subtitleNode.textContent = subtitle;
+  const promptInput = document.getElementById('promptInput');
+  if (promptInput) promptInput.placeholder = promptPlaceholder;
+  const drawerFooter = document.querySelector('.drawer-footer p');
+  if (drawerFooter) drawerFooter.textContent = drawerFooterText;
+  if (modelSelect) modelSelect.value = currentModelType;
+}
+
 function applyLanguage() {
   document.documentElement.lang = currentLanguage === 'zh' ? 'zh-CN' : 'en';
   document.querySelectorAll('[data-i18n]').forEach((node) => {
@@ -428,6 +517,7 @@ function applyLanguage() {
   cropZoomValue.textContent = `${Number(cropZoomInput.value || 1).toFixed(2)}x`;
   cropOffsetXValue.textContent = `${Math.round((parseFloat(cropOffsetXInput.value) || 0) * 100)}%`;
   cropOffsetYValue.textContent = `${Math.round((parseFloat(cropOffsetYInput.value) || 0) * 100)}%`;
+  applyModelPresentation();
   refreshTemplates();
   updateGlobalStatus();
   renderHistory();
@@ -440,6 +530,12 @@ function applyLanguage() {
 function toggleLanguage() {
   currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
   localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+  applyLanguage();
+}
+
+function handleModelChange() {
+  currentModelType = modelSelect.value || 'zimage';
+  localStorage.setItem(MODEL_STORAGE_KEY, currentModelType);
   applyLanguage();
 }
 
@@ -835,6 +931,7 @@ function createJobCard(payload, jobId) {
       </div>
     </div>
     <div class="job-settings">
+      <div class="job-setting"><strong>${t('modelLabel')}</strong><span>${payload.modelLabel || t(`model${payload.modelType === 'qimage' ? 'Qimage' : 'Zimage'}`)}</span></div>
       <div class="job-setting"><strong>${t('promptLabel')}</strong><span>${payload.prompt}</span></div>
       <div class="job-setting"><strong>${t('styleTemplateLabel')}</strong><span>${payload.promptTemplate || '-'}</span></div>
       <div class="job-setting"><strong>${t('sizeLabel')}</strong><span>${payload.width}×${payload.height}</span></div>
@@ -880,6 +977,8 @@ function createHistoryCard(entry) {
   const card = document.createElement('article');
   card.className = 'job-card history-card';
   const status = normalizeStatus(entry.status || 'completed');
+  const promptText = entry.request?.prompt || '';
+  const promptPreview = promptText.length > 150 ? `${promptText.slice(0, 150).trim()}...` : promptText;
   const imageMarkup = (entry.images || []).slice(0, parseInt(previewLimitInput.value, 10) || 4).map((src, index) => `
     <div class="job-image-card">
       <img src="${src}" alt="${entry.request?.prompt || 'History image'} ${index + 1}">
@@ -931,7 +1030,19 @@ function createHistoryCard(entry) {
       </div>
     </div>
     <div class="job-settings">
-      <div class="job-setting"><strong>${t('promptLabel')}</strong><span>${entry.request?.prompt || ''}</span></div>
+      <div class="job-setting"><strong>${t('modelLabel')}</strong><span>${entry.request?.modelLabel || t(`model${entry.request?.modelType === 'qimage' ? 'Qimage' : 'Zimage'}`)}</span></div>
+      <div class="job-setting job-setting-prompt">
+        <strong>${t('promptLabel')}</strong>
+        <div class="prompt-summary-block">
+          <span class="prompt-summary-text" data-role="prompt-summary">${escapeHtml(promptPreview)}</span>
+          <button type="button" class="icon-action-button compact-button prompt-toggle-button" data-expanded="false" title="${t('expandPrompt')}" aria-label="${t('expandPrompt')}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        </div>
+        <div class="prompt-full-text" data-role="prompt-full" hidden>${escapeHtml(promptText)}</div>
+      </div>
       <div class="job-setting"><strong>${t('styleTemplateLabel')}</strong><span>${entry.request?.promptTemplate || '-'}</span></div>
       <div class="job-setting"><strong>${t('sizeLabel')}</strong><span>${entry.request?.width}×${entry.request?.height}</span></div>
       <div class="job-setting"><strong>${t('resolutionLabel')}</strong><span>${entry.request?.resolution || 'n/a'}</span></div>
@@ -955,6 +1066,20 @@ function createHistoryCard(entry) {
         dataUrl: '',
       });
       requestPreview.innerHTML = `<p><strong>${t('loaded')}</strong>: ${button.dataset.label || t('sourceHistory')}</p>`;
+    });
+  });
+  card.querySelectorAll('.prompt-toggle-button').forEach((button) => {
+    button.addEventListener('click', () => {
+      const expanded = button.dataset.expanded === 'true';
+      const full = card.querySelector('[data-role="prompt-full"]');
+      const summary = card.querySelector('[data-role="prompt-summary"]');
+      if (!full || !summary) return;
+      button.dataset.expanded = expanded ? 'false' : 'true';
+      full.hidden = expanded;
+      summary.hidden = !expanded;
+      button.title = expanded ? t('expandPrompt') : t('collapsePrompt');
+      button.setAttribute('aria-label', expanded ? t('expandPrompt') : t('collapsePrompt'));
+      button.classList.toggle('is-expanded', !expanded);
     });
   });
   return card;
@@ -992,7 +1117,7 @@ function updateJobCard(job, payload) {
         imageCard.className = 'job-image-card';
         const image = document.createElement('img');
         image.src = `${src}?t=${Date.now()}`;
-        image.alt = `${payload.request?.prompt || 'Zimage result'} ${index + 1}`;
+        image.alt = `${payload.request?.prompt || 'Image result'} ${index + 1}`;
         imageCard.appendChild(image);
         const tools = document.createElement('div');
         tools.className = 'job-image-tools';
@@ -1066,6 +1191,7 @@ function renderRequestPreview(payload) {
   }
 
   const parts = [
+    [t('previewModel'), payload.modelLabel || t(`model${payload.modelType === 'qimage' ? 'Qimage' : 'Zimage'}`)],
     [t('previewPrompt'), payload.prompt],
     [t('previewSize'), `${payload.width}×${payload.height}`],
     [t('previewCount'), payload.count],
@@ -1100,6 +1226,8 @@ async function startGeneration() {
   const editPayload = getPreparedEditPayload();
 
   const payload = {
+    modelType: currentModelType,
+    modelLabel: t(`model${currentModelType === 'qimage' ? 'Qimage' : 'Zimage'}`),
     prompt,
     promptTemplate,
     promptTemplateName,
@@ -1259,11 +1387,12 @@ function refreshLiveJobCardsLocale() {
     const statusNode = card.querySelector('.job-status');
     if (eyebrow) eyebrow.textContent = `${t('taskLabel')} ${job.id}`;
     if (title) title.textContent = job.payload.promptTemplateName || t('adhocPromptTask');
-    if (settings[0]) settings[0].textContent = t('promptLabel');
-    if (settings[1]) settings[1].textContent = t('styleTemplateLabel');
-    if (settings[2]) settings[2].textContent = t('sizeLabel');
-    if (settings[3]) settings[3].textContent = t('countLabel');
-    if (settings[4]) settings[4].textContent = t('editMode');
+    if (settings[0]) settings[0].textContent = t('modelLabel');
+    if (settings[1]) settings[1].textContent = t('promptLabel');
+    if (settings[2]) settings[2].textContent = t('styleTemplateLabel');
+    if (settings[3]) settings[3].textContent = t('sizeLabel');
+    if (settings[4]) settings[4].textContent = t('countLabel');
+    if (settings[5]) settings[5].textContent = t('editMode');
     if (actions[0]) actions[0].textContent = t('reusePrompt');
     if (actions[1]) actions[1].textContent = t('saveAsStyle');
     if (actions[2]) actions[2].textContent = t('cancelTask');

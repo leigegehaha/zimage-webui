@@ -35,8 +35,8 @@ body {
 
 .app-shell {
   position: relative;
-  padding: 40px;
-  max-width: 1200px;
+  padding: 28px;
+  max-width: min(1680px, calc(100vw - 24px));
   margin: 0 auto;
 }
 
@@ -147,7 +147,7 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) 1fr;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
   gap: 24px;
   position: relative;
 }
@@ -542,6 +542,8 @@ button#generateButton:disabled {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  width: 100%;
+  min-width: 0;
 }
 
 .history-divider {
@@ -593,6 +595,7 @@ button#generateButton:disabled {
 .job-card.history-card {
   border-style: dashed;
   border-color: rgba(246, 224, 99, 0.25);
+  width: 100%;
 }
 
 .job-header {
@@ -721,7 +724,7 @@ button#generateButton:disabled {
 
 .job-settings {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -731,6 +734,7 @@ button#generateButton:disabled {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 0;
 }
 
 .job-setting strong {
@@ -746,6 +750,62 @@ button#generateButton:disabled {
   color: var(--text);
   font-size: 0.92rem;
   word-break: break-word;
+}
+
+.job-setting-prompt {
+  grid-column: span 2;
+}
+
+.prompt-summary-block {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.prompt-summary-text,
+.prompt-full-text {
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.prompt-summary-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.prompt-full-text {
+  margin-top: 10px;
+  max-height: 240px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.prompt-toggle-button {
+  flex: 0 0 auto;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px;
+}
+
+.prompt-toggle-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease;
+}
+
+.prompt-toggle-button.is-expanded svg {
+  transform: rotate(180deg);
 }
 
 .job-actions {
@@ -956,6 +1016,14 @@ button#generateButton:disabled {
 }
 
 @media (max-width: 1024px) {
+  .job-settings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .job-setting-prompt {
+    grid-column: span 2;
+  }
+
   .app-header {
     flex-direction: column;
   }
@@ -996,6 +1064,10 @@ button#generateButton:disabled {
   .template-actions,
   .job-settings {
     grid-template-columns: 1fr;
+  }
+
+  .job-setting-prompt {
+    grid-column: span 1;
   }
 
   .button-row,
